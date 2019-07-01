@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+	<title>贪吃蛇</title>
+</head>
+<script type="text/javascript" src="jquery-3.1.0.min.js"></script>
+<style>
+  .button_div{
+    margin:0 auto;
+    width: 400px;
+    height: 100px;
+  
+  }
+  #start{
+    border-radius: 30px;
+    font-size: 30px;
+    background: black;
+    color:#fff;
+    width: 400px;
+    height: 100px;
+    margin: 0 auto;
+    /*display: none;*/
+  }
+  .tip{
+    position: absolute;
+    left: 23%;
+    top: 29%;
+    font-size: 80px;
+    color:red;
+    font-weight: bold;
+    display: none;
+  }
+  .level{
+    width: 400px;
+    font-weight: bold;
+    margin:0 auto;
+  }
+  .level span{
+    font-size: 30px;
+  }
+</style>
+<!-- 动画效果构造函数 -->
+<script type="text/javascript">
+  $(function(){
+    function snake(canvas_id, num, speed){
+      this.canvas_id = canvas_id;
+      this.num = num;
+      this.speed = speed;
+      this.getCanvas();
+      //获取蛇数据的方法
+      this.getSnakeData();
+      // 初始化页面元素
+      this.initElements();
+      // 初化页面绑定事件
+      this.initEvent();
+      
+    }
+    snake.prototype = {
+      construtor:snake,
+      moveX:-20, //蛇行走的偏移量
+      moveY:0,
+      status:1,
+      go:1,
+      eggData:{},
+      // 获取canvas对象
+      getCanvas:function(){
+        this.canvas = $('#'+this.canvas_id)[0];       // JQ获取canvas对象的方法
+        this.cw = this.canvas.width;
+        this.ch = this.canvas.height;
+        this.context = this.canvas.getContext('2d'); 
+        this.context.save();
+      },
+      // 初始化页面元素的方法
+      initElements:function(){
+        this.makeBack();
+        this.makeSnake();
+        this.makeEgg();
+      },
+      // 初始化页面绑定事件的方法
+      initEvent:function(){
+        this.start_click();
+      },
+      //开始点击事件
+      start_click:function(){
+        var that = this;
+        $('#start').click(function(){
+          if (that.go == 1) {
+            new snake('c1', 5, 0.1);   //造蛇函数
+            that.clearEgg();
+            that.getEggData();  //造蛋函数
+            that.snakeMove();
+            $(window).keydown(function($event){
+              that.turn($event.keyCode);
+            });
+            $('#start').unbind('click');
+          }else{
+            new snake('c1', 5, 0.1);   //造蛇函数
+            // that.getEggData();  //造蛋函数
+            // that.snakeMove();
+            $('#start').html('GO GO GO')
+            $('#tip').css('display','none');
+          }
+        })
+      },
+      // 生成背景
+      makeBack:function(){
+        this.context.clearRect(0, 0, this.cw, this.ch);
+        this.context.fillStyle = "#EEEEFF";
+        this.context.fillRect(0, 0, this.cw, this.ch);
+      },
+      //生成蛇数据的方法
+      getSnakeData:function(){
+        this.snakeData = [];
+        for (var i = 0; i < this.num; i++) {
+          var x = 500+20*i;
+          var y = 200;
+          this.snakeData.push({'x':x,'y':y})
+        }
+      },
+      // 生成蛇的方法
+      makeSnake:function(){
+        for (var i = 0; i < this.snakeData.length; i++) {
+          if (i==0) {
+            this.context.fillStyle = 'rgba(255,255,0,0.5)';
+            this.context.strokeStyle = '#B8866B';
+          }else{
+            this.context.fillStyle = 'rgba(255,0,0,0.5)';
+            this.context.strokeStyle = '#B8866B';
+          }
+          this.context.fillRect(this.snakeData[i].x, this.snakeData[i].y, 20, 20);
+          this.context.strokeRect(this.snakeData[i].x, this.snakeData[i].y, 20, 20);
+        }
+      },
+      //生成蛋数据
+      getEggData:function(){
+        // var min_x = 0;
+        var max_x = (this.cw-20) / 20;
+        this.eggData.x = Math.round(Math.random()*max_x)*20;
+        var max_y = (this.ch-20) / 20;
+        this.eggData.y  = Math.round(Math.random()*max_y)*20
+        //使用遍历方法去判断生成蛋的位置会不会与蛇现在所占的位置重叠
+        for (var i = 0; i < this.snakeData.length; i++) {
+            if(this.snakeData[i].x == this.eggData.x && this.snakeData[i].y == this.eggData.y){
+              this.getEggData();
+            }
+        }
+        this.makeEgg();
+      },
+      //清空蛋蛋
+      clearEgg:function(){
+        this.eggData = {};
+      },
+      //制造蛋蛋
+      makeEgg:function(){
+        this.context.fillStyle = 'rgba(0,255,255,0.5)';
+        this.context.strokeStyle = '#B8866B';
+        this.context.fillRect(this.eggData.x,this.eggData.y,20,20);
+        this.context.strokeRect(this.eggData.x,this.eggData.y,20,20);
+      },
+      //蛇行走动画的方法
+      snakeMove:function(){
+        var that = this;
+        //往左走
+        this.proSnake = this.copy(this.snakeData);
+        // console.log(temp_arr);
+        for (var i = 0; i < this.snakeData.length; i++) {
+          if (i==0) {
+            this.snakeData[i].x += this.moveX;
+            this.snakeData[i].y += this.moveY;
+          }else{
+            this.snakeData[i].x = this.proSnake[i-1].x
+            this.snakeData[i].y = this.proSnake[i-1].y
+          }
+        }
+        this.getStatus();
+        this.makeBack();
+        this.makeSnake();
+        // 生成蛋
+        this.makeEgg();
+        if (this.status != 0) {
+          this.int = setTimeout(function(){
+            that.snakeMove();
+          },this.speed*1000)
+        }
+      },
+      //复制数组或对象的方法
+      copy:function(data){
+        var arr = [];
+        for (var i in data) {
+          arr[i]={x:data[i].x, y:data[i].y}
+        }
+        return arr;
+      },
+      //重新设定蛇的走的偏移量
+      turn:function(keyCode){
+        switch(keyCode){
+          case 38:
+           // 如果移动方向不为反方向才执行下面的偏移量改变
+           if(this.moveY != 20){
+             this.moveX = 0;
+             this.moveY = -20;
+           }
+         break;
+         case 39:
+           if(this.moveX != -20){
+             this.moveX = 20;
+             this.moveY = 0;
+           }
+         break;
+         case 37:
+           if(this.moveX != 20){
+             this.moveX = -20;
+             this.moveY = 0;
+           }
+         break;
+         case 40:
+           if(this.moveY != -20){
+             this.moveX = 0;
+             this.moveY = 20;
+           }
+         break;
+        }
+      },
+      //判断蛇状态
+      getStatus:function(){
+        //撞到自己
+        for (var i = 1; i < this.snakeData.length; i++) {
+          if (this.snakeData[0].x == this.snakeData[i].x && this.snakeData[0].y == this.snakeData[i].y) {
+            this.stop();
+          }
+        }
+        //撞到墙
+        if (this.snakeData[0].x < 0) {
+          this.snakeData[0].x = this.cw-20;
+        }
+        if (this.snakeData[0].x > this.cw-20) {
+          this.snakeData[0].x = 0;
+        }
+        if (this.snakeData[0].y < 0) {
+          this.snakeData[0].y = this.ch-20;
+        }
+        if (this.snakeData[0].y > this.ch-20) {
+          this.snakeData[0].y = 0;
+        }
+        // if (this.snakeData[0].x >= this.cw-20 || 
+        //   this.snakeData[0].x <= 0 ||
+        //   this.snakeData[0].y >= this.ch-20 ||
+        //   this.snakeData[0].y <= 0) {
+        //   //停止，撞到了
+        //   this.stop();
+        // }
+         // 判断是否吃到蛋
+        if(this.snakeData[0].x == this.eggData.x && this.snakeData[0].y == this.eggData.y){
+          this.eatEgg();
+          this.getEggData();
+        }
+      },
+      // 加蛇长度
+      eatEgg:function(){
+        
+        this.snakeData.push(this.proSnake[this.proSnake.length-1]);
+      },
+      //停止
+      stop:function(){
+        this.start_click();
+        $('#tip').css('display','block');
+        $('#start').html('还要再来一局吗？')
+        $(window).unbind("keydown")          //解绑防止乱点
+        this.go = 0;
+        console.log(this.go);
+        this.status = 0;
+        return false;
+      },
+    };
+    new snake('c1', 5, 0.1);
+  })
+</script>
+<body>
+<canvas id="c1" width="1000" height="500" style="margin:10px auto; width: 1000px;height: 500px; display: block;"></canvas>
+<span id="tip" class="tip">赵毅撞墙死掉了</span>
+<div class="button_div">
+  <button id="start">开始吃吃吃</button>
+</div>
+</body>
+</html>
